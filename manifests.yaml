@@ -1,0 +1,129 @@
+# manifests.yaml — OPI OVS Datapath Challenge
+#
+# One multi-document manifest containing every Custom Resource needed to demonstrate a KubeVirt
+# VM attached to an OVS-backed secondary network:
+#   1. NetworkAttachmentDefinition (ovs-cni) binding pods/VMs onto the host OVS bridge "br-ovs"
+#   2. VirtualMachine "vm-a" (CirrOS) — eth1 = 10.10.0.1/24 on the OVS network
+#   3. VirtualMachine "vm-b" (CirrOS) — eth1 = 10.10.0.2/24 on the OVS network
+#
+# Datapath under test: vm-a eth1 --veth--> br-ovs <--veth-- vm-b eth1. `ping` from vm-a to vm-b
+# therefore traverses the OVS bridge, and `ovs-ofctl dump-flows br-ovs` shows the traffic.
+#
+# Bridge name and IPs MUST match cluster_setup.sh (OVS_BRIDGE, VM_A_IP, VM_B_IP).
+# Apply after cluster_setup.sh:  kubectl apply -f manifests.yaml
+---
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: ovs-net
+  namespace: default
+  annotations:
+    # ovs-cni reads this to know which OVS bridge to plug interfaces into.
+    k8s.v1.cni.cncf.io/resourceName: ovs-cni.network.kubevirt.io/br-ovs
+spec:
+  config: |
+    {
+      "cniVersion": "0.4.0",
+      "type": "ovs",
+      "bridge": "br-ovs"
+    }
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm-a
+  namespace: default
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      labels:
+        kubevirt.io/vm: vm-a
+    spec:
+      domain:
+        cpu:
+          cores: 1
+        resources:
+          requests:
+            memory: 256Mi
+        devices:
+          disks:
+            - name: containerdisk
+              disk:
+                bus: virtio
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+          interfaces:
+            # eth0: default pod network (masquerade) — used for boot/console/agent only.
+            - name: default
+              masquerade: {}
+            # eth1: the OVS secondary network — the datapath we test. "bridge" binding attaches
+            # the VM tap into the ovs-cni-created port on br-ovs.
+            - name: ovs
+              bridge: {}
+      networks:
+        - name: default
+          pod: {}
+        - name: ovs
+          multus:
+            networkName: ovs-net
+      volumes:
+        - name: containerdisk
+          containerDisk:
+            image: quay.io/kubevirt/cirros-container-disk-demo
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            # CirrOS supports the NoCloud datasource; bring eth1 up with a static IP.
+            userData: |
+              #!/bin/sh
+              sudo ip addr add 10.10.0.1/24 dev eth1
+              sudo ip link set eth1 up
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm-b
+  namespace: default
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      labels:
+        kubevirt.io/vm: vm-b
+    spec:
+      domain:
+        cpu:
+          cores: 1
+        resources:
+          requests:
+            memory: 256Mi
+        devices:
+          disks:
+            - name: containerdisk
+              disk:
+                bus: virtio
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+            - name: ovs
+              bridge: {}
+      networks:
+        - name: default
+          pod: {}
+        - name: ovs
+          multus:
+            networkName: ovs-net
+      volumes:
+        - name: containerdisk
+          containerDisk:
+            image: quay.io/kubevirt/cirros-container-disk-demo
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            userData: |
+              #!/bin/sh
+              sudo ip addr add 10.10.0.2/24 dev eth1
+              sudo ip link set eth1 up

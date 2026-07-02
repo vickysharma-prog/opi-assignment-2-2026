@@ -1,0 +1,6 @@
+{
+  "_status": "PENDING LIVE CAPTURE",
+  "_description": "Will contain the raw JSON output of: ovs-ofctl dump-flows br-ovs --format=json",
+  "_generated_by": "./cluster_setup.sh verify",
+  "_note": "Not fabricated. Placeholder committed so the deliverable slot is visible; overwritten with the genuine OVS flow dump on the live run."
+}

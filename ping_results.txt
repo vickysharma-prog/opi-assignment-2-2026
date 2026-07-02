@@ -1,0 +1,8 @@
+### PENDING LIVE CAPTURE ###
+# This file will contain the RAW stdout of the ping test:
+#     vm-a (10.10.0.1)  ->  vm-b (10.10.0.2)   over the OVS bridge br-ovs
+# It is produced automatically by:  ./cluster_setup.sh verify
+# (run after: ./cluster_setup.sh  &&  kubectl apply -f manifests.yaml)
+#
+# Not fabricated: real output is captured from the live cluster. Placeholder committed so the
+# deliverable slot is visible; it is overwritten with genuine `ping` stdout on the live run.
