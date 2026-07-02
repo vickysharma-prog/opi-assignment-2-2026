@@ -25,9 +25,39 @@ fails, we drop to the next and document it here:
 
 `dpu_offload_concept.md` is pure documentation and is **complete regardless of which rung is reached.**
 
-## Current status (2026-07-02)
-- Environment-independent deliverables (`cluster_setup.sh`, `manifests.yaml`, `dpu_offload_concept.md`)
-  are **written and validated** (bash `-n` clean; YAML parses to 3 docs; NAD config is valid JSON;
-  both concept diagrams render to SVG).
-- `verification_flows.json` + `ping_results.txt` are **PENDING** placeholders, to be overwritten with
-  genuine captures once WSL2 Ubuntu + Docker are running on the host. **Not fabricated.**
+## What actually ran (2026-07-02) — environment & results
+
+The local laptop's virtualization was unreliable (WSL/Docker wouldn't stay up), so the lab was run
+end-to-end in a **GitHub Codespace** (Ubuntu 24.04, kernel 6.8, 4 vCPU / 16 GB, **32 GB disk**,
+containerised — no loadable kernel modules). Consequences and outcomes:
+
+- **OVS** runs in **userspace datapath mode** (`datapath_type=netdev`) because `openvswitch.ko`
+  can't be loaded in a container. `ovs-vswitchd` runs fine this way. ✔
+- **k3s** required `--snapshotter=native` (overlay-on-overlay otherwise fails) and was run detached
+  (no systemd in the container). Node came up Ready. ✔
+- **Multus + OVS-CNI** needed three k3s-specific fixes, all encoded in `cluster_setup.sh`:
+  (1) `mount --make-rshared /` (Multus binary-installer uses bidirectional mount propagation);
+  (2) repoint the daemonset hostPaths to k3s CNI conf/bin dirs;
+  (3) copy the real `multus`/`ovs` binaries into `/var/lib/rancher/k3s/data/cni` (the dir containerd
+  actually invokes) and symlink `/etc/cni/net.d` so Multus' kubeconfig path resolves. ✔
+- **Datapath PROVEN with pods (rung 2 of the ladder below):** two pods on `ovs-net`, ping
+  **10/10, 0% loss**, with real OpenFlow + datapath megaflows (ARP + ICMP, per-flow packet
+  counters) — these are `ping_results.txt` and `verification_flows.json`. **Real, not fabricated.** ✔
+
+### KubeVirt VM (assignment's ideal) — attempted, where it stopped, and how to finish
+- **KubeVirt v1.8.4 was installed** (operator + all control-plane pods Available) and the CirrOS
+  `VirtualMachine`s in `manifests.yaml` were applied and **scheduled**.
+- **Stop point:** the Codespace's **32 GB disk** is ~75 % full just from the k8s + KubeVirt images
+  (~15 GB). A booting VM's disk overlay tips the node into **`disk-pressure`**, whose `NoSchedule`
+  taint **evicts the VM** — a loop that even a single VM couldn't escape on this node. (A second,
+  time-related snag also appeared after ~1.5 h: Multus' short-lived SA token expired, giving
+  `error waiting for pod: Unauthorized` on new sandboxes — fixed by restarting the Multus daemonset.)
+- **How I'd complete it:** run the *identical* `manifests.yaml` on a node with **≥ ~50 GB free disk**
+  (a normal VM/bare-metal, or a Codespace with a larger disk). With `/dev/kvm` present (it is, on the
+  Codespace host) KubeVirt runs hardware-accelerated and CirrOS boots in well under a minute. No
+  manifest changes are needed — only more disk. The `verify` step then captures the VM-based ping
+  and the same flow dump.
+
+Per the assignment's stated philosophy ("Approach > Perfection … submit what you have with a note on
+where you stopped, why, and how you'd proceed"), the submission ships the **real pod-based datapath
+result** plus the **ready-to-run VM manifests** and this note.
