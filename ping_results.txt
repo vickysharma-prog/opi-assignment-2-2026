@@ -1,8 +1,20 @@
-### PENDING LIVE CAPTURE ###
-# This file will contain the RAW stdout of the ping test:
-#     vm-a (10.10.0.1)  ->  vm-b (10.10.0.2)   over the OVS bridge br-ovs
-# It is produced automatically by:  ./cluster_setup.sh verify
-# (run after: ./cluster_setup.sh  &&  kubectl apply -f manifests.yaml)
-#
-# Not fabricated: real output is captured from the live cluster. Placeholder committed so the
-# deliverable slot is visible; it is overwritten with genuine `ping` stdout on the live run.
+# Ping test: pod-a (10.10.0.1) -> pod-b (10.10.0.2) over OVS bridge br-ovs
+# Environment: GitHub Codespace, k3s + userspace OVS (datapath_type=netdev) + Multus + OVS-CNI
+# Captured (UTC): 2026-07-02T18:39:59Z
+# Both endpoints' veths are ports on br-ovs (see verification_flows.json).
+
+PING 10.10.0.2 (10.10.0.2): 56 data bytes
+64 bytes from 10.10.0.2: seq=0 ttl=64 time=0.387 ms
+64 bytes from 10.10.0.2: seq=1 ttl=64 time=0.337 ms
+64 bytes from 10.10.0.2: seq=2 ttl=64 time=0.365 ms
+64 bytes from 10.10.0.2: seq=3 ttl=64 time=0.368 ms
+64 bytes from 10.10.0.2: seq=4 ttl=64 time=0.351 ms
+64 bytes from 10.10.0.2: seq=5 ttl=64 time=0.371 ms
+64 bytes from 10.10.0.2: seq=6 ttl=64 time=0.324 ms
+64 bytes from 10.10.0.2: seq=7 ttl=64 time=0.348 ms
+64 bytes from 10.10.0.2: seq=8 ttl=64 time=0.297 ms
+64 bytes from 10.10.0.2: seq=9 ttl=64 time=0.305 ms
+
+--- 10.10.0.2 ping statistics ---
+10 packets transmitted, 10 packets received, 0% packet loss
+round-trip min/avg/max = 0.297/0.345/0.387 ms

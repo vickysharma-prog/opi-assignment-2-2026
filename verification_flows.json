@@ -1,6 +1,85 @@
 {
-  "_status": "PENDING LIVE CAPTURE",
-  "_description": "Will contain the raw JSON output of: ovs-ofctl dump-flows br-ovs --format=json",
-  "_generated_by": "./cluster_setup.sh verify",
-  "_note": "Not fabricated. Placeholder committed so the deliverable slot is visible; overwritten with the genuine OVS flow dump on the live run."
+  "meta": {
+    "description": "OVS flow evidence: datapath test pod-a(10.10.0.1) -> pod-b(10.10.0.2) over bridge br-ovs",
+    "captured_utc": "2026-07-02T18:40:59.704263Z",
+    "bridge": "br-ovs",
+    "ovs_version": "3.3.4",
+    "datapath_type": "netdev (userspace)",
+    "environment": "GitHub Codespace; k3s + Multus + OVS-CNI; both pod veths are ports on br-ovs",
+    "note": "ovs-ofctl in OVS 3.3.4 has no native --format=json (only -F flow-format / ovs-vsctl --format=json). These flows were captured from REAL command output (ovs-ofctl dump-flows + ovs-appctl dpctl/dump-flows -m) and serialized to JSON. The datapath_flows include per-flow packet/byte counters that prove the ping traffic (ARP + ICMP) traversed the bridge. Raw text is preserved verbatim under 'raw'."
+  },
+  "openflow_flows": [
+    {
+      "cookie": "0x0",
+      "duration": "1407.913s",
+      "table": "0",
+      "n_packets": "69",
+      "n_bytes": "5638",
+      "idle_age": "1",
+      "priority": "0",
+      "actions": "NORMAL"
+    }
+  ],
+  "datapath_flows": [
+    {
+      "ufid": "3df84fe3-f4cc-409e-a02f-7759faf08394",
+      "in_port": "vethc0fa15da",
+      "eth_src": "7e:f1:f2:ad:8a:2f",
+      "eth_dst": "7a:4e:b0:bb:6d:ca",
+      "eth_type": "0x0806",
+      "l3_l4": "arp(sip=10.10.0.1/0.0.0.0,tip=10.10.0.2/0.0.0.0,op=1/0,sha=7e:f1:f2:ad:8a:2f/00:00:00:00:00:00,tha=00:00:00:00:00:00/00:00:00:00:00:00)",
+      "packets": 1,
+      "bytes": 42,
+      "actions": "vetha8588e14"
+    },
+    {
+      "ufid": "1734ac63-579f-41b8-9bdb-af6152917b5c",
+      "in_port": "vethc0fa15da",
+      "eth_src": "7e:f1:f2:ad:8a:2f",
+      "eth_dst": "7a:4e:b0:bb:6d:ca",
+      "eth_type": "0x0800",
+      "l3_l4": "ipv4(src=10.10.0.1/0.0.0.0,dst=10.10.0.2/0.0.0.0,proto=1/0,tos=0/0,ttl=64/0,frag=no),icmp(type=8/0,code=0/0)",
+      "packets": 9,
+      "bytes": 882,
+      "actions": "vetha8588e14"
+    },
+    {
+      "ufid": "1911f266-a33e-4b7b-abec-ebf344287114",
+      "in_port": "vetha8588e14",
+      "eth_src": "7a:4e:b0:bb:6d:ca",
+      "eth_dst": "7e:f1:f2:ad:8a:2f",
+      "eth_type": "0x0800",
+      "l3_l4": "ipv4(src=10.10.0.2/0.0.0.0,dst=10.10.0.1/0.0.0.0,proto=1/0,tos=0/0,ttl=64/0,frag=no),icmp(type=0/0,code=0/0)",
+      "packets": 9,
+      "bytes": 882,
+      "actions": "vethc0fa15da"
+    },
+    {
+      "ufid": "bd43d935-4c0a-4e16-bcd9-15a7ce9282b6",
+      "in_port": "vethc0fa15da",
+      "eth_src": "7e:f1:f2:ad:8a:2f",
+      "eth_dst": "33:33:00:00:00:02",
+      "eth_type": "0x86dd",
+      "l3_l4": "ipv6(src=fe80::7cf1:f2ff:fead:8a2f/::,dst=ff02::2/::,label=0/0,proto=58/0,tclass=0/0,hlimit=255/0,frag=no),icmpv6(type=133/0,code=0/0)",
+      "packets": 0,
+      "bytes": 0,
+      "actions": "br-ovs,vetha8588e14"
+    },
+    {
+      "ufid": "33d2b544-fcac-4ba0-bcf0-f12b5164560f",
+      "in_port": "vetha8588e14",
+      "eth_src": "7a:4e:b0:bb:6d:ca",
+      "eth_dst": "7e:f1:f2:ad:8a:2f",
+      "eth_type": "0x0806",
+      "l3_l4": "arp(sip=10.10.0.2/0.0.0.0,tip=10.10.0.1/0.0.0.0,op=1/0,sha=7a:4e:b0:bb:6d:ca/00:00:00:00:00:00,tha=00:00:00:00:00:00/00:00:00:00:00:00)",
+      "packets": 1,
+      "bytes": 42,
+      "actions": "vethc0fa15da"
+    }
+  ],
+  "raw": {
+    "ovs-ofctl dump-flows br-ovs": "NXST_FLOW reply (xid=0x4):\n cookie=0x0, duration=1407.913s, table=0, n_packets=69, n_bytes=5638, idle_age=1, priority=0 actions=NORMAL\n",
+    "ovs-appctl dpctl/dump-flows -m": "flow-dump from the main thread:\nufid:3df84fe3-f4cc-409e-a02f-7759faf08394, recirc_id(0),dp_hash(0/0),skb_priority(0/0),in_port(vethc0fa15da),skb_mark(0/0),ct_state(0/0),ct_zone(0/0),ct_mark(0/0),ct_label(0/0),packet_type(ns=0,id=0),eth(src=7e:f1:f2:ad:8a:2f,dst=7a:4e:b0:bb:6d:ca),eth_type(0x0806),arp(sip=10.10.0.1/0.0.0.0,tip=10.10.0.2/0.0.0.0,op=1/0,sha=7e:f1:f2:ad:8a:2f/00:00:00:00:00:00,tha=00:00:00:00:00:00/00:00:00:00:00:00), packets:1, bytes:42, used:3.780s, dp:ovs, actions:vetha8588e14, dp-extra-info:miniflow_bits(5,0)\nufid:1734ac63-579f-41b8-9bdb-af6152917b5c, recirc_id(0),dp_hash(0/0),skb_priority(0/0),in_port(vethc0fa15da),skb_mark(0/0),ct_state(0/0),ct_zone(0/0),ct_mark(0/0),ct_label(0/0),packet_type(ns=0,id=0),eth(src=7e:f1:f2:ad:8a:2f,dst=7a:4e:b0:bb:6d:ca),eth_type(0x0800),ipv4(src=10.10.0.1/0.0.0.0,dst=10.10.0.2/0.0.0.0,proto=1/0,tos=0/0,ttl=64/0,frag=no),icmp(type=8/0,code=0/0), packets:9, bytes:882, used:0.135s, dp:ovs, actions:vetha8588e14, dp-extra-info:miniflow_bits(5,1)\nufid:1911f266-a33e-4b7b-abec-ebf344287114, recirc_id(0),dp_hash(0/0),skb_priority(0/0),in_port(vetha8588e14),skb_mark(0/0),ct_state(0/0),ct_zone(0/0),ct_mark(0/0),ct_label(0/0),packet_type(ns=0,id=0),eth(src=7a:4e:b0:bb:6d:ca,dst=7e:f1:f2:ad:8a:2f),eth_type(0x0800),ipv4(src=10.10.0.2/0.0.0.0,dst=10.10.0.1/0.0.0.0,proto=1/0,tos=0/0,ttl=64/0,frag=no),icmp(type=0/0,code=0/0), packets:9, bytes:882, used:0.135s, dp:ovs, actions:vethc0fa15da, dp-extra-info:miniflow_bits(5,1)\nufid:bd43d935-4c0a-4e16-bcd9-15a7ce9282b6, recirc_id(0),dp_hash(0/0),skb_priority(0/0),in_port(vethc0fa15da),skb_mark(0/0),ct_state(0/0),ct_zone(0/0),ct_mark(0/0),ct_label(0/0),packet_type(ns=0,id=0),eth(src=7e:f1:f2:ad:8a:2f,dst=33:33:00:00:00:02),eth_type(0x86dd),ipv6(src=fe80::7cf1:f2ff:fead:8a2f/::,dst=ff02::2/::,label=0/0,proto=58/0,tclass=0/0,hlimit=255/0,frag=no),icmpv6(type=133/0,code=0/0), packets:0, bytes:0, used:never, dp:ovs, actions:br-ovs,vetha8588e14, dp-extra-info:miniflow_bits(5,1)\nufid:33d2b544-fcac-4ba0-bcf0-f12b5164560f, recirc_id(0),dp_hash(0/0),skb_priority(0/0),in_port(vetha8588e14),skb_mark(0/0),ct_state(0/0),ct_zone(0/0),ct_mark(0/0),ct_label(0/0),packet_type(ns=0,id=0),eth(src=7a:4e:b0:bb:6d:ca,dst=7e:f1:f2:ad:8a:2f),eth_type(0x0806),arp(sip=10.10.0.2/0.0.0.0,tip=10.10.0.1/0.0.0.0,op=1/0,sha=7a:4e:b0:bb:6d:ca/00:00:00:00:00:00,tha=00:00:00:00:00:00/00:00:00:00:00:00), packets:1, bytes:42, used:3.780s, dp:ovs, actions:vethc0fa15da, dp-extra-info:miniflow_bits(5,0)\n",
+    "ovs-ofctl dump-ports br-ovs": "OFPST_PORT reply (xid=0x2): 3 ports\n  port LOCAL: rx pkts=14, bytes=1076, drop=0, errs=0, frame=0, over=0, crc=0\n           tx pkts=21, bytes=1594, drop=0, errs=0, coll=0\n  port  1: rx pkts=30, bytes=2504, drop=0, errs=0, frame=0, over=0, crc=0\n           tx pkts=34, bytes=2860, drop=0, errs=0, coll=0\n  port  2: rx pkts=30, bytes=2504, drop=0, errs=0, frame=0, over=0, crc=0\n           tx pkts=34, bytes=2860, drop=0, errs=0, coll=0\n"
+  }
 }
