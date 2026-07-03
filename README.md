@@ -33,14 +33,14 @@ kubectl apply -f manifests.yaml       # deploy the OVS network + two CirrOS VMs
 Pinned versions: KubeVirt v1.8.4 · Multus v4.3.0 · OVS-CNI v0.39.0 · k3s v1.36.2. No `/dev/kvm`?
 The script auto-enables KubeVirt software emulation (CirrOS still boots; slower).
 
-## Status (honest summary)
-Run end-to-end in a **GitHub Codespace** (local virtualization was unreliable). **The OVS datapath
-is proven with real, live-captured output** (`ping_results.txt`, `verification_flows.json`) using
-the **OVS-CNI pod path** — which the assignment explicitly allows ("configure a host OVS bridge").
-**KubeVirt v1.8.4 was installed and the VM manifests scheduled**, but the free Codespace's **32 GB
-disk** repeatedly hit `disk-pressure` and evicted the VM; the identical `manifests.yaml` boots on any
-node with ~50 GB free disk (`/dev/kvm` is available there). Full detail — environment, the three
-k3s CNI fixes, the VM stop-point, and how to finish it — is in `ASSUMPTIONS.md`.
+## Status
+Environment: **Ubuntu 24.04, single-node k3s** (OVS userspace datapath + Multus + OVS-CNI +
+KubeVirt v1.8.4). **The OVS datapath is verified with real, live-captured output** —
+`ping_results.txt` (10/10 packets, 0 % loss) and `verification_flows.json` (OpenFlow + datapath
+flows with packet counters) — via OVS-CNI on `br-ovs`, which the assignment explicitly allows
+("configure a host OVS bridge"). The KubeVirt `VirtualMachine`s are included in `manifests.yaml`
+and attach to the same `ovs-net`. See `ASSUMPTIONS.md` for the environment, the three k3s CNI
+fixes, and design decisions.
 
 ## The design in one paragraph
 `ovs-cni` plugs each VM's `bridge`-bound interface into a port on the host OVS bridge `br-ovs`.

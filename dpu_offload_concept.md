@@ -29,7 +29,7 @@ Concretely, when `vm-a` pings `vm-b`:
 2. The first packet **misses** the kernel flow cache → upcall to `ovs-vswitchd` (userspace) →
    a flow is installed into the **kernel datapath** (`openvswitch.ko`).
 3. Every subsequent packet is switched by the **host CPU** in the kernel datapath. Throughput and
-   latency are bounded by host cores; under our WSL/emulation lab there is no acceleration at all.
+   latency are bounded by host cores; in this software (emulation) lab there is no acceleration at all.
 
 Verification in this lab: `ovs-ofctl dump-flows br-ovs --format=json` (control-plane / OpenFlow
 view) and `ovs-appctl dpctl/dump-flows` (datapath view) — both show flows handled **in software**.

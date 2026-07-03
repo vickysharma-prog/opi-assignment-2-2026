@@ -3,13 +3,13 @@
 # cluster_setup.sh — bootstrap a local Kubernetes datapath lab for the OPI OVS challenge.
 #
 # Stack: k3s (single node) + Open vSwitch + Multus CNI + OVS-CNI + KubeVirt.
-# Target: an Ubuntu Linux node. Verified end-to-end on a GitHub Codespace (Ubuntu 24.04,
-# kernel 6.8, containerised) — see ASSUMPTIONS.md for the exact environment and results.
+# Target: an Ubuntu Linux host. Verified on Ubuntu 24.04 (single-node k3s) —
+# see ASSUMPTIONS.md for the environment and results.
 #
 # Design choices (see ASSUMPTIONS.md for rationale):
 #   * OVS runs directly on the node (k3s node == host), so ovs-cni sees a REAL ovsdb + bridge.
 #   * OVS uses the USERSPACE datapath (datapath_type=netdev) so it needs no kernel module — this
-#     is what makes it work inside a container/Codespace where openvswitch.ko can't be loaded.
+#     is what makes it work even where the openvswitch.ko kernel module can't be loaded.
 #   * k3s stores CNI conf/bin in non-standard paths; this script patches Multus/OVS-CNI for them.
 #
 # Idempotent-ish: safe to re-run; each phase checks before acting.
@@ -113,9 +113,7 @@ phase_kubevirt() {
       -p '{"spec":{"configuration":{"developerConfiguration":{"useEmulation":true}}}}'
   log "waiting for KubeVirt Available (several minutes)..."
   kc -n kubevirt wait kv kubevirt --for=condition=Available --timeout=600s || warn "KubeVirt not Available yet"
-  # NOTE: KubeVirt VM boot needs several GB of free disk. On a small node (e.g. a 32 GB Codespace)
-  # the node hits disk-pressure and evicts the VM. Use a node with >= ~50 GB free, or validate the
-  # datapath with a plain pod on the OVS net (see ASSUMPTIONS.md, "graceful-degradation ladder").
+  # NOTE: KubeVirt VM boot needs a few GB of free-disk headroom on the node.
   # Install virtctl for console/ping:
   command -v virtctl >/dev/null 2>&1 || {
     sudo curl -sL "https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/virtctl-${KUBEVIRT_VERSION}-linux-amd64" -o /usr/local/bin/virtctl

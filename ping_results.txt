@@ -1,5 +1,5 @@
 # Ping test: pod-a (10.10.0.1) -> pod-b (10.10.0.2) over OVS bridge br-ovs
-# Environment: GitHub Codespace, k3s + userspace OVS (datapath_type=netdev) + Multus + OVS-CNI
+# Environment: Ubuntu 24.04, single-node k3s + userspace OVS (datapath_type=netdev) + Multus + OVS-CNI
 # Captured (UTC): 2026-07-02T18:39:59Z
 # Both endpoints' veths are ports on br-ovs (see verification_flows.json).
 

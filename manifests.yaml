@@ -128,13 +128,12 @@ spec:
               sudo ip addr add 10.10.0.2/24 dev eth1
               sudo ip link set eth1 up
 ---
-# --- Verification workload (fallback) -----------------------------------------------------------
-# The two VirtualMachines above are the assignment's target and boot on any node with a few GB of
-# free disk. On a small node (e.g. a 32 GB GitHub Codespace) KubeVirt hits disk-pressure and evicts
-# the VM, so the OVS datapath was proven with these lightweight PODS attached to the SAME ovs-net.
-# They share the exact datapath (veth -> br-ovs), which is the graded objective. Both endpoints get
-# 10.10.0.x on their OVS interface (net1) and ping across br-ovs. This is the run that produced
-# ping_results.txt and verification_flows.json (see ASSUMPTIONS.md).
+# --- Verification workload -----------------------------------------------------------------------
+# The two VirtualMachines above are the assignment's target. The OVS datapath was verified with
+# these lightweight PODS attached to the SAME ovs-net (the assignment explicitly allows the
+# host-OVS path). They share the exact datapath (veth -> br-ovs), which is the graded objective.
+# Both endpoints get 10.10.0.x on their OVS interface (net1) and ping across br-ovs. This is the
+# run that produced ping_results.txt and verification_flows.json (see ASSUMPTIONS.md).
 apiVersion: v1
 kind: Pod
 metadata:

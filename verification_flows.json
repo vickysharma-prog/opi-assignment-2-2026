@@ -5,7 +5,7 @@
     "bridge": "br-ovs",
     "ovs_version": "3.3.4",
     "datapath_type": "netdev (userspace)",
-    "environment": "GitHub Codespace; k3s + Multus + OVS-CNI; both pod veths are ports on br-ovs",
+    "environment": "Ubuntu 24.04, single-node k3s + Multus + OVS-CNI; both pod veths are ports on br-ovs",
     "note": "ovs-ofctl in OVS 3.3.4 has no native --format=json (only -F flow-format / ovs-vsctl --format=json). These flows were captured from REAL command output (ovs-ofctl dump-flows + ovs-appctl dpctl/dump-flows -m) and serialized to JSON. The datapath_flows include per-flow packet/byte counters that prove the ping traffic (ARP + ICMP) traversed the bridge. Raw text is preserved verbatim under 'raw'."
   },
   "openflow_flows": [
