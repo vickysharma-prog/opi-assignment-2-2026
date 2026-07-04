@@ -7,7 +7,8 @@
     "datapath_type": "netdev (userspace)",
     "endpoints": "KubeVirt VM vm-a (10.10.0.1, MAC 36:35:c7:a5:95:fa) <-> pod-b (10.10.0.2, MAC 6a:41:40:fa:9c:f8)",
     "environment": "Ubuntu Linux, single-node k3s + Multus + OVS-CNI; KubeVirt v1.8.4. vm-a is a real VirtualMachineInstance (phase=Running); its eth1 tap and pod-b's veth are both ports on br-ovs.",
-    "note": "ovs-ofctl in OVS 3.7.1 has no native --format=json. These flows were captured from REAL command output (ovs-ofctl dump-flows + ovs-appctl dpctl/dump-flows -m) and serialized to JSON. The datapath_flows include per-flow packet/byte counters that prove the ping traffic (ARP + ICMP) between the VM and the pod traversed the bridge. The VM's MAC (36:35:c7:a5:95:fa) matches the virtio-net device in the virt-launcher qemu command line. Raw text is preserved verbatim under 'raw'."
+    "assignment_note": "The assignment suggests `ovs-ofctl dump-flows <bridge> --format=json`, but that flag does not exist in ovs-ofctl (verified on OVS 3.7.1: `ovs-ofctl dump-flows br-ovs --format=json` returns `ovs-ofctl: unrecognized option '--format=json'`, and --format/JSON is an ovs-vsctl / ovsdb-client feature, not an ovs-ofctl one). This file therefore replicates the intent: the REAL flow dumps are captured and serialized into machine-readable JSON, with the exact raw command output preserved verbatim under 'raw' so nothing is lost.",
+    "note": "Flows captured from REAL command output (ovs-ofctl dump-flows br-ovs + ovs-appctl dpctl/dump-flows -m + ovs-ofctl dump-ports br-ovs) and serialized to JSON. The datapath_flows include per-flow packet/byte counters that prove the ping traffic (ARP + ICMP) between the VM and the pod traversed the bridge. The VM's MAC (36:35:c7:a5:95:fa) matches the virtio-net device in the virt-launcher qemu command line. Raw text is preserved verbatim under 'raw'."
   },
   "openflow_flows": [
     {
