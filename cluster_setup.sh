@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 #
-# cluster_setup.sh — bootstrap a local Kubernetes datapath lab for the OPI OVS challenge.
+# cluster_setup.sh, bootstrap a local Kubernetes datapath lab for the OPI OVS challenge.
 #
 # Stack: k3s (single node) + Open vSwitch + Multus CNI + OVS-CNI + KubeVirt.
-# Target: an Ubuntu Linux host. Verified on Ubuntu 24.04 (single-node k3s) —
+# Target: an Ubuntu Linux host. Verified on Ubuntu 24.04 (single-node k3s), 
 # see ASSUMPTIONS.md for the environment and results.
 #
 # Design choices (see ASSUMPTIONS.md for rationale):
 #   * OVS runs directly on the node (k3s node == host), so ovs-cni sees a REAL ovsdb + bridge.
-#   * OVS uses the USERSPACE datapath (datapath_type=netdev) so it needs no kernel module — this
+#   * OVS uses the USERSPACE datapath (datapath_type=netdev) so it needs no kernel module, this
 #     is what makes it work even where the openvswitch.ko kernel module can't be loaded.
 #   * k3s stores CNI conf/bin in non-standard paths; this script patches Multus/OVS-CNI for them.
 #
@@ -59,7 +59,7 @@ phase_ovs() {
 phase_k3s() {
   log "Phase 2/5: k3s single-node cluster"
   if ! command -v k3s >/dev/null 2>&1; then
-    # Install the binary but don't let the installer start/enable k3s — we start it ourselves below
+    # Install the binary but don't let the installer start/enable k3s, we start it ourselves below
     # with the flags we want. `sudo env VAR=... sh -` reliably passes the INSTALL_K3S_* vars into the
     # installer regardless of the sudoers env policy (a bare `VAR=... sh -` after an empty sudo/root
     # is mis-parsed as a command).
@@ -99,7 +99,7 @@ phase_multus_ovscni() {
   kc -n kube-system rollout status ds/kube-multus-ds --timeout=240s || warn "multus slow"
   kc -n kube-system rollout status ds/ovs-cni-amd64 --timeout=240s || warn "ovs-cni slow"
   # containerd invokes plugins from K3S_CNI_BIN_LIVE (symlink dir), NOT the staging bin dir the
-  # daemonsets copied into — so copy the real multus/ovs binaries where containerd looks.
+  # daemonsets copied into, so copy the real multus/ovs binaries where containerd looks.
   log "placing multus/ovs binaries in the live CNI dir"
   for b in multus ovs ovs-mirror-consumer ovs-mirror-producer; do
     [ -f "${K3S_CNI_BIN_STAGE}/$b" ] && sudo cp -f "${K3S_CNI_BIN_STAGE}/$b" "${K3S_CNI_BIN_LIVE}/$b"
@@ -109,7 +109,7 @@ phase_multus_ovscni() {
   if [ ! -f "${K3S_CNI_BIN_LIVE}/multus" ]; then
     local m; m=$(find /var/lib/rancher/k3s -type f -name multus 2>/dev/null | head -1)
     [ -n "$m" ] && { sudo cp -f "$m" "${K3S_CNI_BIN_LIVE}/multus"; log "recovered multus binary from $m"; } \
-                || warn "multus binary not found yet — re-run this phase once the multus pod is Running"
+                || warn "multus binary not found yet, re-run this phase once the multus pod is Running"
   fi
 }
 

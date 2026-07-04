@@ -1,10 +1,10 @@
-# manifests.yaml — OPI OVS Datapath Challenge
+# manifests.yaml, OPI OVS Datapath Challenge
 #
 # One multi-document manifest containing every Custom Resource needed to demonstrate a KubeVirt
 # VM attached to an OVS-backed secondary network:
 #   1. NetworkAttachmentDefinition (ovs-cni) binding pods/VMs onto the host OVS bridge "br-ovs"
-#   2. VirtualMachine "vm-a" (CirrOS) — eth1 = 10.10.0.1/24 on the OVS network
-#   3. VirtualMachine "vm-b" (CirrOS) — eth1 = 10.10.0.2/24 on the OVS network
+#   2. VirtualMachine "vm-a" (CirrOS), eth1 = 10.10.0.1/24 on the OVS network
+#   3. VirtualMachine "vm-b" (CirrOS), eth1 = 10.10.0.2/24 on the OVS network
 #
 # Datapath under test: vm-a eth1 --veth--> br-ovs <--veth-- vm-b eth1. `ping` from vm-a to vm-b
 # therefore traverses the OVS bridge, and `ovs-ofctl dump-flows br-ovs` shows the traffic.
@@ -55,10 +55,10 @@ spec:
               disk:
                 bus: virtio
           interfaces:
-            # eth0: default pod network (masquerade) — used for boot/console/agent only.
+            # eth0: default pod network (masquerade), used for boot/console/agent only.
             - name: default
               masquerade: {}
-            # eth1: the OVS secondary network — the datapath we test. "bridge" binding attaches
+            # eth1: the OVS secondary network, the datapath we test. "bridge" binding attaches
             # the VM tap into the ovs-cni-created port on br-ovs.
             - name: ovs
               bridge: {}
@@ -160,12 +160,12 @@ spec:
       image: busybox:1.36
       command: ["sleep", "3600"]
       securityContext: { capabilities: { add: ["NET_ADMIN"] } }
-# Captured (VM datapath) run — vm-a already holds 10.10.0.1 via cloud-init:
+# Captured (VM datapath) run, vm-a already holds 10.10.0.1 via cloud-init:
 #   kubectl wait --for=condition=Ready pod/pod-b
 #   kubectl exec pod-b -- ip addr add 10.10.0.2/24 dev net1 && kubectl exec pod-b -- ip link set net1 up
 #   kubectl exec pod-b -- ping -c 10 10.10.0.1      # pod-b -> VM vm-a, traverses br-ovs
 # then: ./cluster_setup.sh verify
 #
-# Optional pure pod<->pod run (do NOT run while vm-a is up — 10.10.0.1 would clash):
+# Optional pure pod<->pod run (do NOT run while vm-a is up, 10.10.0.1 would clash):
 #   kubectl exec pod-a -- ip addr add 10.10.0.1/24 dev net1 && kubectl exec pod-a -- ip link set net1 up
 #   kubectl exec pod-a -- ping -c 10 10.10.0.2

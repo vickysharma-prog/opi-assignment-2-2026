@@ -1,4 +1,4 @@
-# KubeVirt VM (vm-a) serial-console boot log — proof the VM is real and self-configured its OVS interface.
+# KubeVirt VM (vm-a) serial-console boot log, proof the VM is real and self-configured its OVS interface.
 #
 # Captured from the virt-launcher guest-console-log:
 #   kubectl logs virt-launcher-vm-a-<id> -c guest-console-log
@@ -10,7 +10,7 @@
 #   * the CirrOS banner + "vm-a login:"                   -> the guest fully booted to a login prompt
 #
 # The eth1 MAC (36:35:c7:a5:95:fa) is the same virtio-net device seen in the virt-launcher qemu
-# command line and in the OVS datapath flows (verification_flows.json) — i.e. this VM's traffic is
+# command line and in the OVS datapath flows (verification_flows.json), i.e. this VM's traffic is
 # exactly what crossed br-ovs during the ping.
 #
 # VMI status at capture:
