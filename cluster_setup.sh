@@ -59,10 +59,13 @@ phase_ovs() {
 phase_k3s() {
   log "Phase 2/5: k3s single-node cluster"
   if ! command -v k3s >/dev/null 2>&1; then
-    # --snapshotter=native is REQUIRED inside a container (overlayfs-on-overlayfs otherwise fails).
-    curl -sfL https://get.k3s.io | sudo INSTALL_K3S_SKIP_START=true INSTALL_K3S_SKIP_ENABLE=true sh -
+    # Install the binary but don't let the installer start/enable k3s — we start it ourselves below
+    # with the flags we want. `sudo env VAR=... sh -` reliably passes the INSTALL_K3S_* vars into the
+    # installer regardless of the sudoers env policy (a bare `VAR=... sh -` after an empty sudo/root
+    # is mis-parsed as a command).
+    curl -sfL https://get.k3s.io | sudo env INSTALL_K3S_SKIP_START=true INSTALL_K3S_SKIP_ENABLE=true sh -
   fi
-  if [ ! -f "$KC" ]; then
+  if [ ! -f "$KC" ] || ! kc get nodes >/dev/null 2>&1; then
     sudo bash -c 'setsid k3s server --snapshotter=native --write-kubeconfig-mode=644 \
       --disable traefik --disable servicelb --flannel-backend=host-gw >/var/log/k3s.log 2>&1 </dev/null &'
   fi
@@ -101,6 +104,13 @@ phase_multus_ovscni() {
   for b in multus ovs ovs-mirror-consumer ovs-mirror-producer; do
     [ -f "${K3S_CNI_BIN_STAGE}/$b" ] && sudo cp -f "${K3S_CNI_BIN_STAGE}/$b" "${K3S_CNI_BIN_LIVE}/$b"
   done
+  # Multus' init container stages its binary asynchronously; if a slow image pull made the rollout
+  # wait above time out, `multus` may not have been staged yet when we copied. Guarantee it's present.
+  if [ ! -f "${K3S_CNI_BIN_LIVE}/multus" ]; then
+    local m; m=$(find /var/lib/rancher/k3s -type f -name multus 2>/dev/null | head -1)
+    [ -n "$m" ] && { sudo cp -f "$m" "${K3S_CNI_BIN_LIVE}/multus"; log "recovered multus binary from $m"; } \
+                || warn "multus binary not found yet — re-run this phase once the multus pod is Running"
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -108,11 +118,13 @@ phase_kubevirt() {
   log "Phase 5/5: KubeVirt ${KUBEVIRT_VERSION}"
   kc apply -f "https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml"
   kc apply -f "https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-cr.yaml"
-  # Enable software emulation when there's no usable /dev/kvm (CirrOS still boots, just slower).
-  [ -e /dev/kvm ] || kc -n kubevirt patch kubevirt kubevirt --type=merge \
+  # Force software emulation (QEMU TCG). This is what the captured run used: it guarantees the VM
+  # boots regardless of whether the node exposes a usable /dev/kvm to virt-launcher. CirrOS is tiny,
+  # so emulation is fast enough; on a host with working KVM passthrough you may drop this for speed.
+  kc -n kubevirt patch kubevirt kubevirt --type=merge \
       -p '{"spec":{"configuration":{"developerConfiguration":{"useEmulation":true}}}}'
-  log "waiting for KubeVirt Available (several minutes)..."
-  kc -n kubevirt wait kv kubevirt --for=condition=Available --timeout=600s || warn "KubeVirt not Available yet"
+  log "waiting for KubeVirt Available (image pulls can take 10-20 min on a fresh node)..."
+  kc -n kubevirt wait kv kubevirt --for=condition=Available --timeout=1200s || warn "KubeVirt not Available yet"
   # NOTE: KubeVirt VM boot needs a few GB of free-disk headroom on the node.
   # Install virtctl for console/ping:
   command -v virtctl >/dev/null 2>&1 || {
@@ -127,12 +139,18 @@ phase_kubevirt() {
 verify() {
   log "Datapath verification -> ping_results.txt + verification_flows.json"
   local TS; TS=$(date -u +%FT%TZ)
-  { echo "# Ping test over OVS bridge ${OVS_BRIDGE} (10.10.0.1 -> 10.10.0.2)";
+  { echo "# Ping test over OVS bridge ${OVS_BRIDGE}";
     echo "# Captured (UTC): ${TS}"; echo "";
-    # Prefer a VM endpoint if present, else a pod named pod-a.
     if kc get vmi vm-a >/dev/null 2>&1; then
-      sudo virtctl ssh cirros@vm-a --local-ssh -c "ping -c 10 10.10.0.2" 2>&1
+      # Real KubeVirt VM datapath (this is what the captured run did): vm-a self-assigns 10.10.0.1
+      # on eth1 via cloud-init; give the peer pod-b its IP, then ping the VM across the bridge.
+      echo "# pod-b (10.10.0.2) -> KubeVirt VM vm-a (10.10.0.1)"; echo ""
+      kc exec pod-b -- ip addr add 10.10.0.2/24 dev net1 2>/dev/null || true
+      kc exec pod-b -- ip link set net1 up 2>/dev/null || true
+      kc exec pod-b -- ping -c 10 10.10.0.1 2>&1
     else
+      # Pure pod<->pod fallback if the VM isn't up.
+      echo "# pod-a (10.10.0.1) -> pod-b (10.10.0.2)"; echo ""
       kc exec pod-a -- ping -c 10 10.10.0.2 2>&1
     fi
   } | tee ping_results.txt
